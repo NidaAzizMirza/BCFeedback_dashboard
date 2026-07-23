@@ -1,0 +1,31 @@
+# Full dependencies for run_pipeline.py (weekly job) — includes the
+# heavy NLP stack (torch/transformers/spacy/sentence-transformers).
+# For the lightweight daily job's minimal deps, see requirements-daily.txt.
+
+# Core
+pandas
+numpy
+openpyxl
+
+# SurveyMonkey API + config
+requests
+python-dotenv
+
+# NLP pipeline
+joblib
+scikit-learn
+torch
+sentence-transformers
+transformers
+spacy
+beautifulsoup4
+pyspellchecker
+demoji
+sentencepiece
+protobuf
+
+# Dashboard
+streamlit
+matplotlib
+
+tiktoken

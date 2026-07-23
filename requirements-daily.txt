@@ -1,0 +1,7 @@
+# Minimal dependencies for update_raw_metrics.py (daily job).
+# Deliberately excludes torch/transformers/spacy/sentence-transformers —
+# those are only needed by the weekly full pipeline (see requirements.txt).
+pandas
+numpy
+requests
+python-dotenv
