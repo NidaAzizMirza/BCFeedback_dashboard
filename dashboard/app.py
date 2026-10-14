@@ -1,6 +1,6 @@
 """
 ============================================================================
- DASHBOARD/APP.PY — Planning Portal Feedback Dashboard (Streamlit)
+ DASHBOARD/APP.PY — Building Control Feedback Dashboard (Streamlit)
 ============================================================================
 Launch with:
     streamlit run dashboard/app.py
@@ -92,7 +92,7 @@ def _topic_label(name, n):
 # SECTION 1 — PAGE CONFIG + CSS
 # ============================================================================
 st.set_page_config(
-    page_title="Planning Portal Feedback",
+    page_title="Building Control Feedback",
     # page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -677,7 +677,7 @@ def _topic_negative_heatmap(topic_view: pd.DataFrame, top_n: int = 12) -> plt.Fi
 # ============================================================================
 
 def _sidebar():
-    st.sidebar.title("Planning Control Portal")
+    st.sidebar.title("Building Control")
     st.sidebar.caption("Feedback Pipeline Dashboard")
     st.sidebar.divider()
 
@@ -1502,7 +1502,7 @@ def _check_password() -> bool:
         # secret is actually set, if you want it to fail CLOSED instead.
         return True
 
-    st.title("🗺️ Planning Portal Feedback")
+    st.title("🗺️ Building Control Feedback")
     pwd = st.text_input("Password", type="password")
     if st.button("Enter"):
         if pwd == expected:
@@ -1522,7 +1522,7 @@ def main():
     _render_admin_panel()
 
     if not db_exists():
-        st.title("Planning Portal Feedback")
+        st.title("Building Control Feedback")
         st.warning(
             "No database found yet. Run the pipeline first:\n\n"
             "`python run_pipeline.py`\n\n"
@@ -1532,7 +1532,7 @@ def main():
 
     _sidebar()
 
-    st.title("Planning Portal Feedback Dashboard")
+    st.title("Building Control Feedback Dashboard")
 
     tab1, tab2 = st.tabs(["Feedback ratings", "Feedback comments"])
     with tab1:
