@@ -1,0 +1,53 @@
+name: Daily survey cache refresh
+
+# Runs every day at 06:00 UTC — an hour before daily_pipeline.yml (07:00)
+# and weekly_pipeline.yml (07:00 Monday). Pulls new SurveyMonkey
+# responses since ITS OWN checkpoint (separate from the daily/weekly
+# jobs' checkpoints) into data/survey_cache.csv.
+#
+# This is NOT required for the daily/weekly jobs to work — they still
+# fetch from the API directly via their own incremental checkpoints.
+# The cache exists purely so run_pipeline.py can be run with
+# USE_LOCAL_CACHE=true (locally, or manually in CI) against real data
+# with zero API calls — e.g. to preview the dashboard repeatedly without
+# burning quota.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install lightweight dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-daily.txt
+
+      - name: Refresh survey cache
+        env:
+          SURVEYMONKEY_ACCESS_TOKEN: ${{ secrets.SURVEYMONKEY_ACCESS_TOKEN }}
+          SURVEYMONKEY_SURVEY_ID: ${{ secrets.SURVEYMONKEY_SURVEY_ID }}
+        run: python refresh_survey_cache.py
+
+      - name: Commit and push updated cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/survey_cache.csv data/last_fetch_checkpoint_cache.txt
+          git diff --quiet --cached || git commit -m "Daily survey cache refresh — $(date -u +%Y-%m-%d)"
+          git push

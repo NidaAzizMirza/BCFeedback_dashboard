@@ -1,0 +1,54 @@
+name: Daily raw metrics update
+
+# Runs every day at 07:00 UTC — updates ONLY response volume, ratings,
+# and NSAT. No NLP models involved, so this installs and runs fast even
+# though it fires daily. Full classification/sentiment/entities run
+# separately on their own weekly schedule (see weekly_pipeline.yml).
+#
+# Reads from the local survey cache (data/survey_cache.csv, refreshed
+# daily at 06:00 UTC by cache_refresh.yml) via USE_LOCAL_CACHE=true,
+# rather than calling the SurveyMonkey API itself. This means only ONE
+# job in the whole pipeline ever talks to SurveyMonkey — cache_refresh.yml
+# — instead of three separate jobs each maintaining their own API
+# checkpoint and each independently eating into the same 500/day quota.
+# That's also why this workflow no longer needs the SURVEYMONKEY_*
+# secrets at all.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-raw-metrics:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install lightweight dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-daily.txt
+
+      - name: Update raw metrics
+        env:
+          USE_LOCAL_CACHE: "true"
+        run: python update_raw_metrics.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --quiet --cached || git commit -m "Daily raw metrics update — $(date -u +%Y-%m-%d)"
+          git push

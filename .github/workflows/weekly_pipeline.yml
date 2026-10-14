@@ -1,0 +1,67 @@
+name: Weekly full pipeline
+
+# Runs every Monday at 07:00 UTC — the full pipeline: classification,
+# ABSA sentiment, entity extraction, and dashboard tag/feature/error
+# tables. This is the heavy job (loads SVM, sentence-transformer, ABSA,
+# and spaCy models), which is why it's weekly rather than daily.
+# Raw volume/rating/NSAT numbers are updated separately, daily, by
+# daily_pipeline.yml — this workflow does not touch those.
+#
+# Reads from the local survey cache (data/survey_cache.csv, refreshed
+# daily at 06:00 UTC by cache_refresh.yml) via USE_LOCAL_CACHE=true,
+# rather than calling the SurveyMonkey API itself — same reasoning as
+# daily_pipeline.yml. This workflow no longer needs the SURVEYMONKEY_*
+# secrets either.
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run-full-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m spacy download en_core_web_sm
+
+      - name: Run full pipeline
+        env:
+          USE_LOCAL_CACHE: "true"
+        run: python run_pipeline.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Explicit paths only — do NOT use a broad "git add outputs/" here.
+          # outputs/latest/*.xlsx is intentionally .gitignore'd (regenerated
+          # every run, not meant to live in git history). dashboard.html is
+          # the one output file that IS meant to be tracked, since GitHub
+          # Pages serves it directly from the repo.
+          #
+          # NOTE: data/last_fetch_checkpoint.txt (this job's OWN former
+          # API checkpoint) is deliberately NOT added here anymore — now
+          # that this workflow reads via USE_LOCAL_CACHE instead of
+          # calling the API directly, that file is never created in CI.
+          # It's only relevant if run_pipeline.py is ever run locally
+          # without USE_LOCAL_CACHE.
+          git add data/master.xlsx data/processed_ids.csv data/metrics.db
+          git add outputs/latest/dashboard.html
+          git diff --quiet --cached || git commit -m "Weekly full pipeline run — $(date -u +%Y-%m-%d)"
+          git push
