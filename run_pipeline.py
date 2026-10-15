@@ -512,7 +512,7 @@ HARD_FALLBACK = {
          "over the phone", "live chat", "help desk", "helpdesk"],
         "Customer support & human assistance"
     ),
-    "Tree works": (
+    "Tree works (minor vs major)": (
         ["tree", "trees", "tree works", "tree surgery", "arborist",
          "tpo", "tree preservation", "woodland", "conservation area"],
         "Planning App/work types"

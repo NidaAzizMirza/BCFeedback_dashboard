@@ -70,6 +70,7 @@ TAG_MAP = {
     "LPI tool / Drawing tools": ("Location plans, addresses and mapping", None),
     # Tree works/BNG/Discharge collapse to one topic (see granularity note)
     "Tree works": ("Planning App/work types", None),
+    "Tree works (minor vs major)": ("Planning App/work types", None),
     "BNG / Biodiversity metric": ("Planning App/work types", None),
     "Discharge conditions": ("Planning App/work types", None),
     # Fees carries inherent negative sentiment when it's specifically "too high";
