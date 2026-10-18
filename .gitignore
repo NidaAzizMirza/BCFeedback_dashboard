@@ -58,6 +58,10 @@ test.py
 *.bak_*
 data/retag_progress.jsonl
 tagged_examples.csv
-outputs/
+outputs/eval_*.csv
+outputs/holdout_*.csv
+outputs/keyword_rule_check.csv
 tagged_examples.csv
-outputs/
+outputs/eval_*.csv
+outputs/holdout_*.csv
+outputs/keyword_rule_check.csv
