@@ -465,43 +465,49 @@ HARD_FALLBACK = {
         ["crash", "crashed", "crashing", "lost my work", "data lost",
          "error message", "session expired", "timed out", "timeout",
          "lost data", "keeps crashing", "lost everything",
-         "repeatedly crashes", "system crashed", "portal crashed"],
+         "repeatedly crashes", "system crashed", "portal crashed",
+         "timing out", "times out", "kept timing out"],
         "Challenges and Workarounds"
     ),
     "Bugs/ glitch": (
         ["bug", "glitch", "not working", "broken", "system issue",
-         "technical issue", "keeps freezing", "freezing", "stalling"],
+         "technical issue", "keeps freezing", "freezing", "stalling",
+         "did not work", "does not work", "didnt work", "doesnt work",
+         "didn't work", "doesn't work", "would not load", "wouldnt load",
+         "wouldn't load", "not loading"],
         "Challenges and Workarounds"
     ),
     "Payments": (
         ["payment system", "pay instantly", "banking app", "manual pay",
          "payment confirmation", "payment method", "card payment",
          "bank transfer", "payment received", "payment failed",
-         "nomination fee", "nominate", "overpayment", "refund"],
+         "nomination fee", "nominate", "overpayment", "refund",
+         "payment", "payments", "paying", "to pay", "pay for", "take payment"],
         "Payments"
     ),
     "Lack of guidance": (
         ["more guidance", "clearer guidance", "lack of guidance",
          "no guidance", "need guidance", "more explanation",
          "clearer instructions", "not sure", "not sure what",
-         "not sure which", "didn't know", "had no idea", "not obvious",
+         "not sure which", "didn't know", "didnt know", "had no idea", "not obvious",
          # Bare word additions: this is a TOPIC match, not a polarity
          # match — sentiment is scored separately downstream, so
          # requiring the keyword to already spell out "lack of"/"no"
          # was too narrow. "no effective guidance", "the guidance was
          # great", "clearer guidance would help" all belong to this
          # topic regardless of which way they lean.
-         "guidance", "unclear", "not clear", "difficult to follow", "hard to follow"],
+         "guidance", "unclear", "difficult to follow", "hard to follow"],
         "Guidance, clarity & jargon"
     ),
     "Jargon": (
         ["jargon", "technical terms", "technical language", "plain english",
          "layperson", "lay person", "not a professional", "not a builder",
-         "tooltips", "tooltip", "abbreviation", "acronym"],
+         "tooltips", "tooltip", "abbreviation", "acronym",
+         "wording", "language", "terminology"],
         "Guidance, clarity & jargon"
     ),
     "Guidance": (
-        ["example", "examples", "template", "templates",
+        ["template", "templates",
          "step by step", "high level guide", "simplify process",
          "make it clearer", "make it easier", "faq"],
         "Guidance, clarity & jargon"
@@ -509,7 +515,8 @@ HARD_FALLBACK = {
     "Support desk/ Human support": (
         ["had to call", "had to phone", "called helpline", "speak to someone",
          "real person", "can you icer", "phone advice", "phone support",
-         "over the phone", "live chat", "help desk", "helpdesk"],
+         "over the phone", "live chat", "help desk", "helpdesk",
+         "customer service", "customer support", "phone call", "phone calls", "on the phone"],
         "Customer support & human assistance"
     ),
     "Tree works (minor vs major)": (
@@ -549,7 +556,8 @@ HARD_FALLBACK = {
          "navigate", "navigating", "navigation",
          "difficult to use", "hard to use",
          "tricky", "impossible to work out", "hard to work out",
-         "difficult to work out"],
+         "difficult to work out",
+         "clarity of process", "process was difficult", "difficult process", "not simple"],
         "General UX"
     ),
     "Form completion": (
@@ -579,6 +587,7 @@ NEGATION_SIGNALS = [
     "not good", "not helpful", "not simple", "far from easy",
     "hard to", "difficult to", "struggled", "couldn't", "could not",
     "wasn't easy", "was not easy", "isn't easy", "is not easy",
+    "couldnt", "wasnt easy", "isnt easy",
 ]
 
 def match_keywords(text, keywords):
@@ -664,6 +673,7 @@ USER_TYPE_KEYWORDS = {
     "non_tech": [
         "not very techy", "not good with computers",
         "technology isn't my strength", "isn't very techy",
+        "not tech-savvy", "not tech savvy", "not techy", "not very tech",
     ],
     "tech_user": [
         "tech-savvy", "tech savvy", "comfortable with technology",
@@ -676,9 +686,28 @@ USER_TYPE_KEYWORDS = {
         "accessibility needs", "accessibility need",
     ],
     "older_user": [
-        "as an older person", "at my age", "elderly","older", "over 40", "not under 40"
+        "as an older person", "at my age", "i am elderly", "im elderly", "i am older", "im older", "not under 40"
     ],
 }
+
+
+OLDER_AGE = 50   # a stated age at or above this tags the respondent as older_user
+_AGE_PATTERNS = [
+    # "i am 72", "i'm 72", "im 72", "aged 72"  (not "i am 50 minutes into this")
+    re.compile(r"\b(?:i am|i'm|im|aged)\s+(\d{2})\b(?!\s*(?:%|percent|per cent|minutes|mins|hours|hrs|days|weeks|months|times|miles))"),
+    # a comment that starts with the age: "84 years old. Found this very stressful"
+    re.compile(r"^\s*(\d{2})\s*(?:years?|yrs?)\s*old\b"),
+    # "in my 60s"
+    re.compile(r"\bin my\s+(\d)0s\b"),
+]
+
+
+def stated_age(text):
+    """Age the respondent states about themselves, or None. Deliberately ignores "the building is 84 years old"."""
+    t = str(text).lower().replace("\u2019", "'")
+    ages = [int(m.group(1)) * (10 if i == 2 else 1)
+            for i, pat in enumerate(_AGE_PATTERNS) for m in pat.finditer(t)]
+    return max(ages) if ages else None
 
 
 def extract_user_type(text):
@@ -687,6 +716,9 @@ def extract_user_type(text):
     # Returns every category that matches, comma-joined, or None.
     hits = [slug for slug, keywords in USER_TYPE_KEYWORDS.items()
             if match_keywords(text, keywords)]
+    age = stated_age(text)
+    if age is not None and age >= OLDER_AGE and "older_user" not in hits:
+        hits.append("older_user")
     return ", ".join(hits) if hits else None
 
 
@@ -838,6 +870,10 @@ def step_classify(df):
     results_df = pd.DataFrame(results)
     df = pd.concat([df.reset_index(drop=True), results_df], axis=1)
 
+    # Hand-tagged overrides + topic model (group_topics.py); each is skipped if its file is missing
+    from group_topics import apply_group_topics
+    df = apply_group_topics(df, embeddings, set(tag_to_group.values()))
+
     log.info(f"Classification complete — method breakdown:")
     log.info(df["prediction_method"].value_counts().to_string())
     return df
@@ -868,6 +904,16 @@ def split_group_names(groups_str, known_groups):
     # longest names first, so the full name wins over any shorter piece
     pattern = "|".join(re.escape(g) for g in sorted(known_groups, key=len, reverse=True))
     return list(dict.fromkeys(re.findall(pattern, groups_str)))  # de-duped, order kept
+
+# Explicit, strongly negative words. The ABSA model is asked about the aspect "overall experience", so a comment
+# that criticises one specific thing ("totally ridiculous!") can come back neutral. match_keywords() skips
+# negated uses such as "not terrible".
+STRONG_NEGATIVE_WORDS = [
+    "ridiculous", "terrible", "awful", "appalling", "useless", "pathetic", "shambles",
+    "nightmare", "horrendous", "hopeless", "atrocious", "diabolical", "waste of time",
+    "absolute joke", "unacceptable", "not fit for purpose",
+]
+
 
 def step_absa(df):
     KNOWN_GROUPS = (
@@ -948,6 +994,8 @@ def step_absa(df):
         groups = [g for g in dict.fromkeys(groups) if g not in SENTIMENT_ONLY_GROUPS]
 
         overall_sentiment, overall_score = get_absa_sentiment(text, "overall experience")
+        if overall_sentiment == "neutral" and match_keywords(text, STRONG_NEGATIVE_WORDS):
+            overall_sentiment, overall_score = "negative", max(overall_score, 0.6)
 
         pairs = []
         all_aspects, all_aspect_strs = [], []
