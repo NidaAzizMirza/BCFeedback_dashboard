@@ -1177,7 +1177,7 @@ def page_browse_reviews(months: list[str] | None):
         the full list with sentiment per topic in the detail panel below."""
         return ", ".join(p.get("topic", "") for p in pairs if p.get("topic"))
 
-    def _truncate(text, max_len=140):
+    def _truncate(text, max_len=400):
         if not isinstance(text, str):
             return text
         return text if len(text) <= max_len else text[:max_len].rstrip() + "…"
