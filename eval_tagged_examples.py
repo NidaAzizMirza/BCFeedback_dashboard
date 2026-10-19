@@ -34,6 +34,8 @@ def load_gold(path):
     ex["Text"] = ex["Text"].map(_clean)
     ex["Tag"] = ex["Tag"].map(_clean)
     ex["Group"] = ex["Tag - Group"].map(_clean)
+    from group_topics import regroup
+    ex["Group"] = regroup(ex["Tag"], ex["Group"])
     ex = ex[ex["Text"] != ""]
     gold = ex.groupby("Text").agg(
         gold_groups=("Group", lambda s: set(s)),

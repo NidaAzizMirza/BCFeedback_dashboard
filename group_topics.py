@@ -29,6 +29,15 @@ OUTPUT_COLUMNS = ("primary_tag", "primary_tag_group", "secondary_tags",
                   "secondary_tag_groups", "svm_confidence", "prediction_method")
 
 
+def regroup(tags, groups, tags_file=None):
+    """Group of each tag according to the CURRENT data/tags.csv, so moving a tag between groups there is enough.
+    Falls back to the group in the Dovetail export for a tag that is not in the file."""
+    t = pd.read_csv(tags_file or cfg.TAGS_FILE, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    current = {a.strip().lower(): b.strip() for a, b in zip(t["Title"], t["Group"]) if a.strip() and b.strip()}
+    return pd.Series([current.get(str(a).strip().lower(), str(g).strip()) for a, g in zip(tags, groups)],
+                     index=groups.index)
+
+
 def text_key(text) -> str:
     """Stable id for a comment: hash of its cleaned, lower-cased, whitespace-normalised text."""
     norm = " ".join(str(text).lower().split())

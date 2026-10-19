@@ -38,6 +38,8 @@ def load_examples(path):
     ex["Text"] = ex["Text"].str.strip()
     ex["Tag"] = ex["Tag"].str.strip()
     ex["Group"] = ex["Tag - Group"].str.strip()
+    from group_topics import regroup
+    ex["Group"] = regroup(ex["Tag"], ex["Group"])
     ex = ex[(ex["Text"] != "") & (ex["Tag"] != "") & (ex["Group"] != "")]
     pairs = ex.groupby("Text", sort=False).apply(lambda d: list(dict.fromkeys(zip(d["Tag"], d["Group"]))))
     return pairs.reset_index(name="pairs")

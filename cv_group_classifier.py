@@ -39,6 +39,8 @@ def load_gold(path):
     ex = pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8-sig")
     ex["Text"] = ex["Text"].str.strip()
     ex["Group"] = ex["Tag - Group"].str.strip()
+    from group_topics import regroup
+    ex["Group"] = regroup(ex["Tag"], ex["Group"])
     ex = ex[(ex["Text"] != "") & ~ex["Group"].isin(NOT_TOPICS)]
     return ex.groupby("Text")["Group"].agg(set)          # comment -> set of topics
 
